@@ -104,5 +104,9 @@ venv.bak/
 .mypy_cache/
 
 # exclude data files to reduce repo size
+.DS_Store
 data/
-
+.idea/
+logs/
+checkpoints/
+result/

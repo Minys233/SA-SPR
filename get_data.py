@@ -2,7 +2,6 @@ import requests
 import hashlib
 from tqdm import tqdm
 import os
-from io import BytesIO
 
 
 def checksum(filename):
@@ -11,6 +10,7 @@ def checksum(filename):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
 
 def download(url, filename, md5=None, keep=False):
     # check if the right file exists
@@ -33,7 +33,7 @@ def download(url, filename, md5=None, keep=False):
             return filename
         else:
             if keep:
-                printf(f"{filename}\tMD5 hash check NOT passed, but kept.")
+                print(f"{filename}\tMD5 hash check NOT passed, but kept.")
                 return filename
             else:
                 print(f"{filename}\tMD5 hash check NOT passed, deleted.")
@@ -43,8 +43,9 @@ def download(url, filename, md5=None, keep=False):
         print(f"{filename}\t not checking md5")
         return filename
 
+
 if __name__ == '__main__':
-    #Mol2vec pre-trained model
+    # Mol2vec pre-trained model
     download(
         'https://github.com/samoturk/mol2vec/raw/master/examples/models/model_300dim.pkl',
         'data/mol2vec_model_300dim.pkl',
