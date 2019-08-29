@@ -22,7 +22,7 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     train_dataset = Dataset.from_tensor_slices((train_x, train_y)).shuffle(buffer_size=128).batch(64,drop_remainder=True)
     val_dataset = Dataset.from_tensor_slices((val_x, val_y)).batch(32, drop_remainder=True)
     test_dataset = Dataset.from_tensor_slices((test_x, test_y)).batch(32, drop_remainder=True)
-
+    # This eats huge HD space!
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=1, update_freq='batch')
     earlystop_callback = keras.callbacks.EarlyStopping(patience=10)
     checkpoint_callback = keras.callbacks.ModelCheckpoint(f'./checkpoints/model-{pad_to}-{lstm_hidden}-{lr}-{loss}.ckpt',
@@ -45,7 +45,8 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     plt.ylabel("Groundtruth")
     MSE = ((predict - truth) ** 2).mean()
     plt.title(f"MSE = {MSE:.3f}")
-    plt.savefig(Path(savefigto)/f'./solubility-{pad_to}-{lstm_hidden}-{lr}-{loss}-{MSE:.3f}.png')
+    plt.savefig(Path(savefigto)/f'./solubility_simple_lstm-{pad_to}-{lstm_hidden}-{lr}-{loss}-{MSE:.3f}.png')
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -54,6 +55,7 @@ if __name__ == "__main__":
     lr_lst = [0.001, 0.0005, 0.0001]
     loss_lst = ['mae', 'mse']
     savefigto = 'result'
+    Path(savefigto).mkdir(exist_ok=True)
 
     for pad_to in pad_to_lst:
         for lstm_hidden in lstm_hidden_lst:
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     with open('solubility-simple-bilstm-summary.csv', 'w') as fout:
         print('Max molecule size,LSTM hidden size,Learning rate,Loss function,MSE', file=fout)
         lines = []
-        for fname in Path('result').glob('solubility*.png'):
+        for fname in Path(savefigto).glob('solubility_simple_lstm*.png'):
             basename = fname.name.rsplit('.', 1)[0]
             _, pad_size, hidden_size, lr, loss, mse = basename.split('-')
             pad_size, hidden_size = int(pad_size), int(hidden_size)
@@ -75,12 +77,4 @@ if __name__ == "__main__":
         lines = sorted(lines, key=lambda x: x[4])
         for pad_size, hidden_size, lr, loss, mse in lines:
             print(f"{pad_size},{hidden_size},{lr},{loss},{mse:.4f}", file=fout)
-
-    best = lines[0]
-    model = keras.models.load_model(f'checkpoints/model-{best[0]}-{best[1]}-{best[2]}-{best[3]}.ckpt')
-    # TODO: do other evaluations ...
-
-
-
-
 

@@ -23,7 +23,7 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
                                                                                                   drop_remainder=True)
     val_dataset = Dataset.from_tensor_slices((val_x, val_y)).batch(32, drop_remainder=True)
     test_dataset = Dataset.from_tensor_slices((test_x, test_y)).batch(32, drop_remainder=True)
-
+    # This eats huge HD space!
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=1, update_freq='batch')
     earlystop_callback = keras.callbacks.EarlyStopping(patience=10)
     checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -48,6 +48,7 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
     MSE = ((predict - truth) ** 2).mean()
     plt.title(f"MSE = {MSE:.3f}")
     plt.savefig(Path(savefigto) / f'./solubility_sa_bilstm-{pad_to}-{lstm_hidden}-{da}-{r}-{lr}-{loss}-{MSE:.4f}.png')
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -61,6 +62,7 @@ if __name__ == '__main__':
     # loss_lst = ['mae', 'mse']
     loss = 'mse'
     savefigto = 'result'
+    Path(savefigto).mkdir(exist_ok=True)
 
     for pad_to in pad_to_lst:
         for lstm_hidden in lstm_hidden_lst:
@@ -72,7 +74,7 @@ if __name__ == '__main__':
     with open('solubility-sa-bilstm-summary.csv', 'w') as fout:
         print('Max molecule size,LSTM hidden size,da,r,Learning rate,Loss function,MSE', file=fout)
         lines = []
-        for fname in Path('result').glob('solubility_sa_bilstm*.png'):
+        for fname in Path(savefigto).glob('solubility_sa_bilstm*.png'):
             basename = fname.name.rsplit('.', 1)[0]
             _, pad_size, hidden_size, da, r, lr, loss, mse = basename.split('-')
             pad_size, hidden_size, da, r = int(pad_size), int(hidden_size), int(da), int(r)

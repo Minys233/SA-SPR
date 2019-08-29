@@ -105,7 +105,7 @@ venv.bak/
 
 # exclude data files to reduce repo size
 .DS_Store
-data/
+data/*
 .idea/
 logs/
 checkpoints/
