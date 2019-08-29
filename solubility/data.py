@@ -1,32 +1,15 @@
-from rdkit import Chem
 import pandas as pd
-import numpy as np
 from gensim.models import word2vec
-from mol2vec.features import mol2alt_sentence
 from sklearn.model_selection import train_test_split
+from utils.utils import mol2vec_features
 
-SEED = 20190827
+SEED = 20190829
 
 
 def load_ESOL(csv_path, mol2vec_path, pad_to=40):
-    df = pd.read_csv(csv_path)
-    df['RDKitMol'] = [Chem.MolFromSmiles(x) for x in df['SMILES']]
     model = word2vec.Word2Vec.load(mol2vec_path)
-    sentences = [mol2alt_sentence(x, 1) for x in df['RDKitMol']]
-    features = np.zeros([len(df), pad_to, model.vector_size])
-    labels = np.reshape(np.array(df['measured log(solubility:mol/L)']), (-1, 1))
-    print("mean: ", labels.mean(), "std: ",labels.std())
-    for idx, sentence in enumerate(sentences):
-        count = 0
-        for word in sentence:
-            if count == pad_to:
-                break
-            try:
-                features[idx, count] = model.wv[word]
-                count += 1
-            except KeyError as e:
-                pass
-    assert features.shape[0] == labels.shape[0]
+    df = pd.read_csv(csv_path)
+    features, labels = mol2vec_features(model, df, 'SMILES', 'measured log(solubility:mol/L)', pad_to)
     features_train, features_test, labels_train, labels_test = \
         train_test_split(features, labels, test_size=0.2, random_state=SEED)
     features_train, features_val, labels_train, labels_val = \

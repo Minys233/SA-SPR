@@ -104,9 +104,16 @@ venv.bak/
 .mypy_cache/
 
 # exclude data files to reduce repo size
+# ESOL
 .DS_Store
-data/*
 .idea/
-logs/
-checkpoints/
-result/
+solubility/data/
+solubility/logs/
+solubility/checkpoints/
+solubility/result/
+
+# Photovoltaic efficiency
+photovoltaic_efficiency/data/
+photovoltaic_efficiency/logs/
+photovoltaic_efficiency/checkpoints/
+photovoltaic_efficiency/result/

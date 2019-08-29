@@ -4,15 +4,15 @@ from tensorflow import keras
 import numpy as np
 from pathlib import Path
 
-from data import load_ESOL
-from model import build_simple_bilstm_model
+from photovoltaic_efficiency.data import load_PCE
+from photovoltaic_efficiency.model import build_simple_bilstm_model
 
 import matplotlib.pyplot as plt
 
 
 def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = \
-        load_ESOL('data/ESOL-solubility.csv', 'data/mol2vec_model_300dim.pkl', pad_to=pad_to)
+        load_PCE('data/cep-processed.csv', 'data/mol2vec_model_300dim.pkl', pad_to=pad_to)
     _, _, vector_size = train_x.shape
 
     model = build_simple_bilstm_model(pad_to=pad_to, vector_size=vector_size, lstm_hidden=lstm_hidden)
@@ -30,12 +30,12 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     model.fit(train_dataset,
               epochs=100,
               validation_data=val_dataset,
-              callbacks=[tensorboard_callback, earlystop_callback, checkpoint_callback]
+              callbacks=[earlystop_callback, checkpoint_callback]
               )
 
     # std, mean
-    predict = np.array(model.predict(test_x)).ravel() * 2.0965 - 3.058
-    truth = np.array(test_y).ravel() * 2.0965 - 3.058
+    predict = np.array(model.predict(test_x)).ravel() * 2.0965 + 3.9005
+    truth = np.array(test_y).ravel() * 2.0965 + 3.9005
 
     plt.figure(figsize=(5, 5))
     plt.scatter(predict, truth)
@@ -45,7 +45,7 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     plt.ylabel("Groundtruth")
     MSE = ((predict - truth) ** 2).mean()
     plt.title(f"MSE = {MSE:.3f}")
-    plt.savefig(Path(savefigto)/f'./solubility_simple_lstm-{pad_to}-{lstm_hidden}-{lr}-{loss}-{MSE:.3f}.png')
+    plt.savefig(Path(savefigto)/f'./photovoltaic_simple_lstm-{pad_to}-{lstm_hidden}-{lr}-{loss}-{MSE:.3f}.png')
     plt.close()
 
 
@@ -56,19 +56,21 @@ if __name__ == "__main__":
     loss_lst = ['mae', 'mse']
     savefigto = 'result'
     Path(savefigto).mkdir(exist_ok=True)
+    Path('checkpoints').mkdir(exist_ok=True)
 
-    for pad_to in pad_to_lst:
-        for lstm_hidden in lstm_hidden_lst:
-            for lr in lr_lst:
-                for loss in loss_lst:
-                    train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto)
-                    keras.backend.clear_session()
+    with tf.device('gpu:1'):
+        for pad_to in pad_to_lst:
+            for lstm_hidden in lstm_hidden_lst:
+                for lr in lr_lst:
+                    for loss in loss_lst:
+                        train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto)
+                        keras.backend.clear_session()
 
     # I forgot to write a summary file
-    with open('solubility-simple-bilstm-summary.csv', 'w') as fout:
+    with open('photovoltaic-simple-bilstm-summary.csv', 'w') as fout:
         print('Max molecule size,LSTM hidden size,Learning rate,Loss function,MSE', file=fout)
         lines = []
-        for fname in Path(savefigto).glob('solubility_simple_lstm*.png'):
+        for fname in Path(savefigto).glob('photovoltaic_simple_lstm*.png'):
             basename = fname.name.rsplit('.', 1)[0]
             _, pad_size, hidden_size, lr, loss, mse = basename.split('-')
             pad_size, hidden_size = int(pad_size), int(hidden_size)

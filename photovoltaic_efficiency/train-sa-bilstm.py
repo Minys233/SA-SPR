@@ -4,8 +4,8 @@ from tensorflow import keras
 import numpy as np
 from pathlib import Path
 
-from data import load_ESOL
-from model import build_sa_bilstm_model
+from photovoltaic_efficiency.data import load_PCE
+from photovoltaic_efficiency.model import build_sa_bilstm_model
 
 import matplotlib.pyplot as plt
 
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # almost same as train_simple_bilstm
 def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = \
-        load_ESOL('data/ESOL-solubility.csv', 'data/mol2vec_model_300dim.pkl', pad_to=pad_to)
+        load_PCE('data/cep-processed.csv', 'data/mol2vec_model_300dim.pkl', pad_to=pad_to)
     _, _, vector_size = train_x.shape
     model = build_sa_bilstm_model(pad_to=pad_to, vector_size=vector_size, lstm_hidden=lstm_hidden, da=da, r=r)
     model.compile(optimizer=keras.optimizers.Adam(lr=lr), loss=loss, metrics=['mse'])
@@ -32,12 +32,12 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
     model.fit(train_dataset,
               epochs=100,
               validation_data=val_dataset,
-              callbacks=[tensorboard_callback, earlystop_callback, checkpoint_callback]
+              callbacks=[earlystop_callback, checkpoint_callback]
               )
 
     # std, mean
-    predict = np.array(model.predict(test_x)).ravel() * 2.0965 - 3.058
-    truth = np.array(test_y).ravel() * 2.0965 - 3.058
+    predict = np.array(model.predict(test_x)).ravel() * 2.0965 + 3.9005
+    truth = np.array(test_y).ravel() * 2.0965 + 3.9005
 
     plt.figure(figsize=(5, 5))
     plt.scatter(predict, truth)
@@ -47,12 +47,11 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
     plt.ylabel("Groundtruth")
     MSE = ((predict - truth) ** 2).mean()
     plt.title(f"MSE = {MSE:.3f}")
-    plt.savefig(Path(savefigto) / f'./solubility_sa_bilstm-{pad_to}-{lstm_hidden}-{da}-{r}-{lr}-{loss}-{MSE:.4f}.png')
+    plt.savefig(Path(savefigto) / f'./photovoltaic_sa_bilstm-{pad_to}-{lstm_hidden}-{da}-{r}-{lr}-{loss}-{MSE:.4f}.png')
     plt.close()
 
 
 if __name__ == '__main__':
-    # TODO: grid search, test, visialization
     pad_to_lst = [20, 40, 60, 80, 100]
     lstm_hidden_lst = [100, 150, 300]
     da_lst = [20, 40, 60, 80, 100, 200]
@@ -63,18 +62,19 @@ if __name__ == '__main__':
     loss = 'mse'
     savefigto = 'result'
     Path(savefigto).mkdir(exist_ok=True)
+    Path('checkpoints').mkdir(exist_ok=True)
+    with tf.device('gpu:0'):
+        for pad_to in pad_to_lst:
+            for lstm_hidden in lstm_hidden_lst:
+                for da in da_lst:
+                    for r in r_lst:
+                        train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto)
+                        keras.backend.clear_session()
 
-    for pad_to in pad_to_lst:
-        for lstm_hidden in lstm_hidden_lst:
-            for da in da_lst:
-                for r in r_lst:
-                    train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto)
-                    keras.backend.clear_session()
-
-    with open('solubility-sa-bilstm-summary.csv', 'w') as fout:
+    with open('photovoltaic-sa-bilstm-summary.csv', 'w') as fout:
         print('Max molecule size,LSTM hidden size,da,r,Learning rate,Loss function,MSE', file=fout)
         lines = []
-        for fname in Path(savefigto).glob('solubility_sa_bilstm*.png'):
+        for fname in Path(savefigto).glob('photovoltaic_sa_bilstm*.png'):
             basename = fname.name.rsplit('.', 1)[0]
             _, pad_size, hidden_size, da, r, lr, loss, mse = basename.split('-')
             pad_size, hidden_size, da, r = int(pad_size), int(hidden_size), int(da), int(r)

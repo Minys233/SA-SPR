@@ -2,7 +2,9 @@ import requests
 import hashlib
 from tqdm import tqdm
 import os
-from pathlib import Path
+from rdkit import Chem
+from mol2vec.features import mol2alt_sentence
+import numpy as np
 
 
 def checksum(filename):
@@ -45,26 +47,22 @@ def download(url, filename, md5=None, keep=False):
         return filename
 
 
-if __name__ == '__main__':
-    datadir = Path('./data')
-    if not datadir.is_dir():
-        datadir.mkdir(exist_ok=True)
+def mol2vec_features(model, dataframe, smiles_col, target_col, pad_to):
+    mollst = [Chem.MolFromSmiles(x) for x in dataframe[smiles_col]]
+    sentences = [mol2alt_sentence(x, 1) for x in mollst]
+    features = np.zeros([len(mollst), pad_to, model.vector_size])
+    labels = np.reshape(np.array(dataframe[target_col]), (-1, 1))
+    print("mean: ", labels.mean(), "std: ", labels.std())
+    for idx, sentence in enumerate(sentences):
+        count = 0
+        for word in sentence:
+            if count == pad_to:
+                break
+            try:
+                features[idx, count] = model.wv[word]
+                count += 1
+            except KeyError as e:
+                pass
+    assert features.shape[0] == labels.shape[0]
+    return features, labels
 
-    # Mol2vec pre-trained model
-    download(
-        'https://github.com/samoturk/mol2vec/raw/master/examples/models/model_300dim.pkl',
-        str(datadir/'mol2vec_model_300dim.pkl'),
-        '943260d383420e9ff19168dc59cdc99e'
-        )
-
-    # ESOL data
-    download(
-        'https://cloud.tsinghua.edu.cn/f/2cc3b125053a4275b6a2/?dl=1',
-        str(datadir/'ESOL-solubility.csv'),
-        'ac1580ec494ad7a0f6f040f9afce96cf'
-        )
-    download(
-        'https://cloud.tsinghua.edu.cn/f/d3460ae6efc747a8802b/?dl=1',
-        str(datadir/'ESOL-solubility-readme.txt'),
-        'a0cfbfb4959ebf1f67b0685a5ef9fd9d'
-        )
