@@ -4,7 +4,7 @@ from tensorflow import keras
 import numpy as np
 from pathlib import Path
 
-from photovoltaic_efficiency.data import load_PCE
+from photovoltaic_efficiency.data import load_PCE, Mol2vecLoader
 from photovoltaic_efficiency.model import build_simple_bilstm_model
 
 import matplotlib.pyplot as plt
@@ -14,23 +14,27 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     (train_x, train_y), (val_x, val_y), (test_x, test_y) = \
         load_PCE('data/cep-processed.csv', 'data/mol2vec_model_300dim.pkl', pad_to=pad_to)
     _, _, vector_size = train_x.shape
+    # These data is ~1.6GB memory
 
     model = build_simple_bilstm_model(pad_to=pad_to, vector_size=vector_size, lstm_hidden=lstm_hidden)
     model.compile(optimizer=keras.optimizers.Adam(lr=lr), loss=loss, metrics=['mae'])
     print(model.summary())
     print(train_x.shape, train_y.shape)
-    train_dataset = Dataset.from_tensor_slices((train_x, train_y)).shuffle(buffer_size=128).batch(64,drop_remainder=True)
-    val_dataset = Dataset.from_tensor_slices((val_x, val_y)).batch(32, drop_remainder=True)
-    test_dataset = Dataset.from_tensor_slices((test_x, test_y)).batch(32, drop_remainder=True)
+    train_dataset = Mol2vecLoader(train_x, train_y, pad_to, 64)
+    val_dataset = Mol2vecLoader(val_x, val_y, pad_to, 32)
+    test_dataset = Mol2vecLoader(test_x, test_y, pad_to, 32)
+    # train_dataset = Dataset.from_tensor_slices((train_x, train_y)).shuffle(buffer_size=128).batch(64,drop_remainder=True)
+    # val_dataset = Dataset.from_tensor_slices((val_x, val_y)).batch(32, drop_remainder=True)
+    # test_dataset = Dataset.from_tensor_slices((test_x, test_y)).batch(32, drop_remainder=True)
     # This eats huge HD space!
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=1, update_freq='batch')
     earlystop_callback = keras.callbacks.EarlyStopping(patience=10)
     checkpoint_callback = keras.callbacks.ModelCheckpoint(f'./checkpoints/model-{pad_to}-{lstm_hidden}-{lr}-{loss}.ckpt',
                                                           save_best_only=True)
-    model.fit(train_dataset,
-              epochs=100,
-              validation_data=val_dataset,
-              callbacks=[earlystop_callback, checkpoint_callback]
+    model.fit_generator(train_dataset,
+                        epochs=1000,
+                        validation_data=val_dataset,
+                        callbacks=[earlystop_callback, checkpoint_callback]
               )
 
     # std, mean

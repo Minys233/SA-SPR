@@ -2,8 +2,40 @@ import pandas as pd
 from gensim.models import word2vec
 from sklearn.model_selection import train_test_split
 from utils.utils import mol2vec_features
+from tensorflow import keras
+from rdkit import Chem
+from mol2vec.features import mol2alt_sentence
+import numpy as np
 
 SEED = 20190827
+
+
+class Mol2vecLoader(keras.utils.Sequence):
+    model = word2vec.Word2Vec.load('data/mol2vec_model_300dim.pkl')
+
+    def __init__(self, smiles, targets, pad_to, batch_size):
+        self.smiles = smiles  # vectors, not strings
+        self.targets = targets
+        self.pad_to = pad_to
+        self.batch_size = batch_size
+
+        self.smiles, self.targets = self.myshuffle(self.smiles, self.targets)
+
+    def __getitem__(self, idx):
+        batch_x = self.smiles[idx * self.batch_size:(idx + 1) * self.batch_size]
+        batch_y = self.targets[idx * self.batch_size:(idx + 1) * self.batch_size]
+        return batch_x, batch_y
+
+    def __len__(self):
+        return len(self.smiles)//self.batch_size
+
+    def myshuffle(self, arr1, arr2):
+        assert arr1.shape[0] == arr2.shape[0]
+        idx = np.random.permutation(arr1.shape[0])
+        return arr1[idx], arr2[idx]
+
+    def on_epoch_end(self):
+        self.smiles, self.targets = self.myshuffle(self.smiles, self.targets)
 
 
 def load_PCE(csv_path, mol2vec_path, pad_to=70):
