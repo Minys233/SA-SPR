@@ -1,5 +1,9 @@
 import tensorflow as tf
 from tensorflow.data import Dataset
+config = tf.ConfigProto()
+#config.gpu_options.allow_growth=True
+config.gpu_options.per_process_gpu_memory_fraction = 0.32
+tf.keras.backend.set_session(tf.Session(config=config))
 from tensorflow import keras
 import numpy as np
 from pathlib import Path
@@ -8,11 +12,7 @@ from photovoltaic_efficiency.data import load_PCE, Mol2vecLoader
 from photovoltaic_efficiency.model import build_sa_bilstm_model
 
 import matplotlib.pyplot as plt
-import tensorflow.keras.backend
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth=True
-tensorflow.keras.backend.set_session(tf.Session(config=config))
 
 
 # almost same as train_simple_bilstm
@@ -56,10 +56,15 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
 
 
 if __name__ == '__main__':
+    import sys
+    arg = int(sys.argv[1])
     pad_to_lst = [20, 40, 60, 70]
     lstm_hidden_lst = [100, 150, 300, 450]
     da_lst = [20, 40, 60, 80, 100, 200]
-    r_lst = [5, 10, 15, 20, 25, 30, 50]
+    if arg == 1:
+        r_lst = [5, 10, 15] 
+    elif arg == 2:
+        r_lst = [20, 30, 50]
     # lr_lst = [0.001, 0.0005, 0.0001]
     lr = 0.0001
     # loss_lst = ['mae', 'mse']
