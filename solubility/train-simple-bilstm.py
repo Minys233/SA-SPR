@@ -50,7 +50,7 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
 
 
 if __name__ == "__main__":
-    pad_to_lst = [20, 40, 60, 70]
+    pad_to_lst = [20, 40, 60, 80]
     lstm_hidden_lst = [100, 150, 300, 450]
     lr = 0.0001
     loss = 'mse'

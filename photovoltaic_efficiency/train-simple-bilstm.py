@@ -20,7 +20,7 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     model.compile(optimizer=keras.optimizers.Adam(lr=lr), loss=loss, metrics=['mae'])
     print(model.summary())
     print(train_x.shape, train_y.shape)
-    train_dataset = Mol2vecLoader(train_x, train_y, pad_to, 64)
+    train_dataset = Mol2vecLoader(train_x, train_y, pad_to, 128)
     val_dataset = Mol2vecLoader(val_x, val_y, pad_to, 32)
     test_dataset = Mol2vecLoader(test_x, test_y, pad_to, 32)
     # train_dataset = Dataset.from_tensor_slices((train_x, train_y)).shuffle(buffer_size=128).batch(64,drop_remainder=True)
@@ -42,7 +42,7 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
     truth = np.array(test_y).ravel() * 2.0965 + 3.9005
 
     plt.figure(figsize=(5, 5))
-    plt.scatter(predict, truth)
+    plt.scatter(predict, truth, marker='.', c='b')
     plt.plot([-8, 0], [-8, 0], 'r--')
     plt.axis([-8, 0, -8, 0])
     plt.xlabel("Prediction")
@@ -54,10 +54,10 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
 
 
 if __name__ == "__main__":
-    pad_to_lst = [20, 40, 60]
-    lstm_hidden_lst = [100, 150, 300]
-    lr_lst = [0.001, 0.0005, 0.0001]
-    loss_lst = ['mae', 'mse']
+    pad_to_lst = [20, 40, 60, 70]
+    lstm_hidden_lst = [100, 150, 300, 450]
+    lr = 0.0001
+    loss = 'mse'
     savefigto = 'result'
     Path(savefigto).mkdir(exist_ok=True)
     Path('checkpoints').mkdir(exist_ok=True)
@@ -65,10 +65,8 @@ if __name__ == "__main__":
     with tf.device('gpu:1'):
         for pad_to in pad_to_lst:
             for lstm_hidden in lstm_hidden_lst:
-                for lr in lr_lst:
-                    for loss in loss_lst:
-                        train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto)
-                        keras.backend.clear_session()
+                    train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto)
+                    keras.backend.clear_session()
 
     # I forgot to write a summary file
     with open('photovoltaic-simple-bilstm-summary.csv', 'w') as fout:
