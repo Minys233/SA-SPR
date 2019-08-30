@@ -4,10 +4,15 @@ from tensorflow import keras
 import numpy as np
 from pathlib import Path
 
-from photovoltaic_efficiency.data import load_PCE
+from photovoltaic_efficiency.data import load_PCE, Mol2vecLoader
 from photovoltaic_efficiency.model import build_sa_bilstm_model
 
 import matplotlib.pyplot as plt
+import tensorflow.keras.backend
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth=True
+tensorflow.keras.backend.set_session(tf.Session(config))
 
 
 # almost same as train_simple_bilstm
@@ -19,30 +24,29 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
     model.compile(optimizer=keras.optimizers.Adam(lr=lr), loss=loss, metrics=['mse'])
     print(model.summary())
     print(train_x.shape, train_y.shape)
-    train_dataset = Dataset.from_tensor_slices((train_x, train_y)).shuffle(buffer_size=128).batch(64,
-                                                                                                  drop_remainder=True)
-    val_dataset = Dataset.from_tensor_slices((val_x, val_y)).batch(32, drop_remainder=True)
-    test_dataset = Dataset.from_tensor_slices((test_x, test_y)).batch(32, drop_remainder=True)
+    train_dataset = Mol2vecLoader(train_x, train_y, pad_to, 128)
+    val_dataset = Mol2vecLoader(val_x, val_y, pad_to, 32)
+    test_dataset = Mol2vecLoader(test_x, test_y, pad_to, 32)
     # This eats huge HD space!
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=1, update_freq='batch')
     earlystop_callback = keras.callbacks.EarlyStopping(patience=10)
     checkpoint_callback = keras.callbacks.ModelCheckpoint(
         f'./checkpoints/model-sa-bilstm-{pad_to}-{lstm_hidden}-{da}-{r}-{lr}-{loss}.ckpt',
         save_best_only=True)
-    model.fit(train_dataset,
-              epochs=100,
-              validation_data=val_dataset,
-              callbacks=[earlystop_callback, checkpoint_callback]
-              )
+    model.fit_generator(train_dataset,
+                        epochs=1000,
+                        validation_data=val_dataset,
+                        callbacks=[earlystop_callback, checkpoint_callback]
+                        )
 
     # std, mean
     predict = np.array(model.predict(test_x)).ravel() * 2.0965 + 3.9005
     truth = np.array(test_y).ravel() * 2.0965 + 3.9005
 
     plt.figure(figsize=(5, 5))
-    plt.scatter(predict, truth)
-    plt.plot([-8, 0], [-8, 0], 'r--')
-    plt.axis([-8, 0, -8, 0])
+    plt.scatter(predict, truth, marker='.', c='b')
+    plt.plot([-8, 12], [-8, 12], 'r--')
+    plt.axis([-8, 12, -8, 12])
     plt.xlabel("Prediction")
     plt.ylabel("Groundtruth")
     MSE = ((predict - truth) ** 2).mean()
@@ -52,10 +56,10 @@ def train_sa_bilstm(pad_to, lstm_hidden, da, r, lr, loss, savefigto):
 
 
 if __name__ == '__main__':
-    pad_to_lst = [20, 40, 60, 80, 100]
-    lstm_hidden_lst = [100, 150, 300]
+    pad_to_lst = [20, 40, 60, 70]
+    lstm_hidden_lst = [100, 150, 300, 450]
     da_lst = [20, 40, 60, 80, 100, 200]
-    r_lst = [10, 30, 50, 100, 150, 200]
+    r_lst = [5, 10, 15, 20, 25, 30, 50]
     # lr_lst = [0.001, 0.0005, 0.0001]
     lr = 0.0001
     # loss_lst = ['mae', 'mse']

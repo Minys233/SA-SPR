@@ -8,6 +8,11 @@ from photovoltaic_efficiency.data import load_PCE, Mol2vecLoader
 from photovoltaic_efficiency.model import build_simple_bilstm_model
 
 import matplotlib.pyplot as plt
+import tensorflow.keras.backend
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth=True
+tensorflow.keras.backend.set_session(tf.Session(config))
 
 
 def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
@@ -43,8 +48,8 @@ def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
 
     plt.figure(figsize=(5, 5))
     plt.scatter(predict, truth, marker='.', c='b')
-    plt.plot([-8, 0], [-8, 0], 'r--')
-    plt.axis([-8, 0, -8, 0])
+    plt.plot([-8, 12], [-8, 12], 'r--')
+    plt.axis([-8, 12, -8, 12])
     plt.xlabel("Prediction")
     plt.ylabel("Groundtruth")
     MSE = ((predict - truth) ** 2).mean()
