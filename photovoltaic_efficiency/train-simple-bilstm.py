@@ -12,7 +12,7 @@ import tensorflow.keras.backend
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth=True
-tensorflow.keras.backend.set_session(tf.Session(config))
+tensorflow.keras.backend.set_session(tf.Session(config=config))
 
 
 def train_simple_bilstm(pad_to, lstm_hidden, lr, loss, savefigto):
