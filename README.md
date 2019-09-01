@@ -48,3 +48,14 @@ Note: you may need 2 GPU card and over 1 day to complete the grid search. If you
 3. From `solubility` or `photovoltaic_efficiency` subdir, run following scripts with no argument:
     - `get_data.py`: first download the data required.
     - `train-*-bilstm.py`: train & evaluation.
+
+# Some explanation
+1. For those who cannot load my pretrained model
+    - Try load again on machines have GPU card
+    - Provided results for 2 tasks, in pandas dataframe format.
+
+1. In `photovoltaic-sa-bilstm-best.png` and `photovoltaic-simple-bilstm-best.png`, there are some points, which groundtruth are around 0, but prediction span widely. This is because I forget to filter out items with groundtruth 0 (invalid data) as [NFP paper](https://github.com/HIPS/neural-fingerprint) do. In raw data, they are strictly 0, but since I process them using mean and std value only from training set, so they are not strictly 0 in the result.
+    - There are 821/29978(2.74%) such datapoints, nevermind.
+    - After filtering, the MSE over whole dataset decrease to 0.716 (including training set, just for reference)
+
+
