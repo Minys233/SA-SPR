@@ -1,5 +1,5 @@
 # SA-SPR
-Reproduction: Identifying Structure−Property Relationships through SMILES Syntax Analysis with Self-Attention Mechanism
+Reimplementation: Identifying Structure−Property Relationships through SMILES Syntax Analysis with Self-Attention Mechanism
 
 Since the source code is not provided in the original paper, and neithor does the author's github [repository](https://github.com/SYSU-RCDD/SA-SPR). Thus, this repository is here for some basic implementation and test for the self-attention mechanism.
 
